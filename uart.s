@@ -65,28 +65,28 @@
 .equ UART_FBRD, 0x28 	@ Divisor de baud rate fracionário
 .equ UART_CR, 0x30 		@ Registrador do controlador de registro 
 
-@-------------Bits do LCRH--------------------------------------------------------------------
+@-------------Bits do LCRH---------------------------------------------------------------------
+@ Disposição do bits do controlador de linha de registro 
+	.equ UART_SPS, (1<<7) @ enable stick parity --->>>>> Não entendi o que é ele
+	.equ UART_WLEN1, (1<<6) @ MSB do tamanho de mensagem
+	.equ UART_WLEN0, (1<<5) @ LSB do tamanho de mensagem
+	.equ UART_FEN, (1<<4) @ Habilita FIFOs
+	.equ UART_FEND, (0<<4) @ Desabilita FIFOs
+	.equ UART_STP2, (1<<3) @ Define a quantidade de stop bits
+	.equ UART_EPS, (1<<2) @ Seleciona o tipo de paridade PAR
+	.equ UART_PEN, (1<<1) @ Habilita paridade
+	.equ UART_BRK, (1<<0) @ Envia pausa de dados
 
-.equ UART_SPS, (1<<7) @ enable stick parity --->>>>> Não entendi o que é ele
-.equ UART_WLEN1, (1<<6) @ MSB do tamanho de mensagem
-.equ UART_WLEN0, (1<<5) @ LSB do tamanho de mensagem
-.equ UART_FEN, (1<<4) @ Habilita FIFOs
-.equ UART_FEND, (0<<4) @ Desabilita FIFOs
-.equ UART_STP2, (1<<3) @ Define a quantidade de stop bits
-.equ UART_EPS, (1<<2) @ Seleciona o tipo de paridade PAR
-.equ UART_PEN, (1<<1) @ Habilita paridade
-.equ UART_BRK, (1<<0) @ Envia pausa de dados
 
-
-@----------------------------------------------------------------------------------------------
+@-------------Bits do DR-----------------------------------------------------------------------
 @ Configura paramêtros do data register
-@ Bits do DR, que verificam erros
+@@ Bits do DR, que verificam erros
 	.equ UART_OE, (1<<11) @ overrun error bit
 	.equ UART_BE, (1<<10) @ break error bit
 	.equ UART_PE, (1<<9) @ bit de erro de paridade
 	.equ UART_FE, (1<<8 ) @ bit de erro de enquadramento
 
-@----------------------------------------------------------------------------------------------
+@-------------Bits do FR-----------------------------------------------------------------------
 
 @ Configura parametros do FLAG register
 @@ Bits for the FR (flags register)
@@ -105,7 +105,7 @@
 
 @---------------------Bits do CR---------------------------------------------------------------
 
-@@@ Bits do registrador CR
+@@ Bits do registrador CR
 .equ UART_RXE, (1<<9) @ Enable receiver
 .equ UART_RXD, (0<<9) @ Disable receiver
 .equ UART_TXE, (1<<8) @ Enable transmitter
