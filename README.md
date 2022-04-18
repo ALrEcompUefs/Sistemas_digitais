@@ -31,12 +31,7 @@ _start:
     subs r3,r0,#0
     bge aberto @Se foi 0, abre
     b mensagem_erro @se foi diferente de 0
-    Figura 1. Início do nosso código
-
-Como podemos ver na imagem do código acima, carregamos 4 parâmetros antes de chamarmos a syscall. Esses parâmetros carregam o caminho em que queremos abrir o arquivo, como queremos abrir (somente leitura, leitura e escrita ou só escrita). No ARM, o r7  é o qual colocamos o valor da nossa syscall, e chamamos utilizando o svc 0
-
-A syscall retorna um valor >0 caso tenha conseguido abrir o arquivo e o valor -1 caso não tenha. Utilizamos o subs para verificar se o valor de retorno, que fica no r0, é maior ou não que 0. Caso seja, seguimos com a execução do nosso código.
-
+    
 aberto:     @ mostrar mensagem de sucesso
     mov r4,r0 @ Movendo o file descriptor pro r4
     mov r0,#1 @ printar mensagem no terminal
@@ -46,7 +41,31 @@ aberto:     @ mostrar mensagem de sucesso
     svc 0 @ chamando a syscall
     b mapear_gpio
 ```
-Figura 2. Função de mapeamento da GPIO
+
+Como podemos ver na imagem do código acima, carregamos 4 parâmetros antes de chamarmos a syscall. Esses parâmetros carregam o caminho em que queremos abrir o arquivo, como queremos abrir (somente leitura, leitura e escrita ou só escrita). No ARM, o r7  é o qual colocamos o valor da nossa syscall, e chamamos utilizando o svc 0
+
+A syscall retorna um valor >0 caso tenha conseguido abrir o arquivo e o valor -1 caso não tenha. Utilizamos o subs para verificar se o valor de retorno, que fica no r0, é maior ou não que 0. Caso seja, seguimos com a execução do nosso código.
+
+
+```s
+@---------------Função mapear GPIO-------------------------------------------------------------
+@ Com o arquivo dev/Mem aberto realiza o mapeamento da memoria virtual da raspberry
+
+mapear_gpio:
+    @ Mapear a GPIO
+    mov r7,#192 		@ syscall do mmap2
+    ldr r5,=baseUART0	@ Carrega no registrador r5  o enereço base da UART (definido no cabeçalho)
+    mov r0,#0 			@kernel escolhe a memoria
+    mov r1,#4096 		@ Page size
+    ldr r2,=PROT_RDWR
+    ldr r3,=MAP_SHARED
+    svc 0
+    cmp r0,#0
+    mov r5,r0 @r5 eh o endereco da base da UART0
+    bge map_sucesso
+
+@----------------------------------------------------------------------------------------------
+```
 No código acima, utilizamos o resultado da syscall Open, feita anteriormente, salvando-a no r4, assim utilizaremos em conjunto com outros 5 parâmetros requisitados pela syscall mmap2.
 
 Nesses parâmetros, informamos o endereço da memória da UART que queremos mapear, o tamanho do mapeamento (4096), se podemos ler e escrever, quem pode acessar essa memória mapeada, e o endereço que queremos alocar. Precisamos informar onde queremos mapear por conta que o Sistema Operacional (SO) não permite acesso diretamente ao endereço. Então fazemos um mapeamento virtual da memória, que o SO nos permite acessar.
