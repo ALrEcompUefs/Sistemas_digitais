@@ -55,12 +55,16 @@
 .equ O_ASYNC, 00020000
 
 @----------------------------------------------------------------------------------------------
+@	ENDEREÇOS DO REGISTRADORES DA UART E DEFINIÇÃO DOS VALORES DO REGISTRADORES
 
-.equ UART_FR, 0x18 @ Flag Register
-.equ UART_IBRD, 0x24 @ Divisor de baud rate inteiro
-.equ UART_FBRD, 0x28 @ Divisor de baud rate fracionário
+@--------- REGISTRADORES---------------------------
+.equ UART_DR, 0x00 		@ Registrador de dados
+.equ UART_LCRH, 0x2C 	@ Registrador de controle de linha
+.equ UART_FR, 0x18 		@ Flag Register
+.equ UART_IBRD, 0x24 	@ Divisor de baud rate inteiro
+.equ UART_FBRD, 0x28 	@ Divisor de baud rate fracionário
+.equ UART_CR, 0x30 		@ Registrador do controlador de registro 
 
-.equ UART_LCRH, 0x2C @ Registrador de controle de linha
 @-------------Bits do LCRH--------------------------------------------------------------------
 
 .equ UART_SPS, (1<<7) @ enable stick parity --->>>>> Não entendi o que é ele
@@ -76,35 +80,30 @@
 
 @----------------------------------------------------------------------------------------------
 @ Configura paramêtros do data register
-
-.equ UART_DR, 0x00 @ Registrador de dados
-	@Bits do DR, que verificam erros
-.equ UART_OE, (1<<11) @ overrun error bit
-.equ UART_BE, (1<<10) @ break error bit
-.equ UART_PE, (1<<9) @ bit de erro de paridade
-.equ UART_FE, (1<<8 ) @ bit de erro de enquadramento
+@ Bits do DR, que verificam erros
+	.equ UART_OE, (1<<11) @ overrun error bit
+	.equ UART_BE, (1<<10) @ break error bit
+	.equ UART_PE, (1<<9) @ bit de erro de paridade
+	.equ UART_FE, (1<<8 ) @ bit de erro de enquadramento
 
 @----------------------------------------------------------------------------------------------
 
 @ Configura parametros do FLAG register
 @@ Bits for the FR (flags register)
-.equ UART_RI, (1<<8) @ Unsupported
-.equ UART_TXFE, (1<<7) @ Transmit FIFO empty
-.equ UART_RXFF, (1<<6) @ Receive FIFO full
-.equ UART_TXFF, (1<<5) @ Transmit FIFO full
-.equ UART_RXFE, (1<<4) @ Receive FIFO empty
-.equ UART_BUSY, (1<<3) @ UART is busy xmitting
-.equ UART_DCD, (1<<2) @ Unsupported
-.equ UART_DSR, (1<<1) @ Unsupported
-.equ UART_CTS, (1<<0) @ Clear to send
+	.equ UART_RI, (1<<8) @ Unsupported
+	.equ UART_TXFE, (1<<7) @ Transmit FIFO empty
+	.equ UART_RXFF, (1<<6) @ Receive FIFO full
+	.equ UART_TXFF, (1<<5) @ Transmit FIFO full
+	.equ UART_RXFE, (1<<4) @ Receive FIFO empty
+	.equ UART_BUSY, (1<<3) @ UART is busy xmitting
+	.equ UART_DCD, (1<<2) @ Unsupported
+	.equ UART_DSR, (1<<1) @ Unsupported
+	.equ UART_CTS, (1<<0) @ Clear to send
 
 @----------------------------------------------------------------------------------------------
 
 
 @---------------------Bits do CR---------------------------------------------------------------
-
-
-.equ UART_CR, 0x30 @ Endereco do UARTCR 
 
 @@@ Bits do registrador CR
 .equ UART_RXE, (1<<9) @ Enable receiver
