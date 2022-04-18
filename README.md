@@ -71,12 +71,13 @@ No código acima, utilizamos o resultado da syscall Open, feita anteriormente, s
 Nesses parâmetros, informamos o endereço da memória da UART que queremos mapear, o tamanho do mapeamento (4096), se podemos ler e escrever, quem pode acessar essa memória mapeada, e o endereço que queremos alocar. Precisamos informar onde queremos mapear por conta que o Sistema Operacional (SO) não permite acesso diretamente ao endereço. Então fazemos um mapeamento virtual da memória, que o SO nos permite acessar.
 
 Após o mapeamento da memória, iniciou-se a configuração da UART. Seguindo os seguintes passos:
-Desabilitar a UART;
-Esperar o fim de uma transmissão;
-Esvaziar/desabilitar a FIFO de transmissão e recepção;
-Configurar os parâmetros de comunicação;
-Reprogramar o registrador de controle da UART;
-Habilitar a UART.
+
+1. Desabilitar a UART;
+2. Esperar o fim de uma transmissão;
+3. Esvaziar/desabilitar a FIFO de transmissão e recepção;
+4. Configurar os parâmetros de comunicação;
+5. Reprogramar o registrador de controle da UART;
+6. Habilitar a UART.
 
 Para realizar os passos citados acima, se tornou necessário utilizar registradores. O registrador responsável por desabilitar e habilitar a UART é o registrador de controle (CR). Já o registrador responsável por desabilitar a FIFO e configurar os parâmetros de comunicação é o registrador de controle de linha (LCRH). 
 
@@ -92,26 +93,42 @@ Para transmitir os dados através da UART, salva-se o dado que deseja enviar em 
 Para a realização do teste de loopback, utilizou-se um fio conector entre o pino TX e RX da UART e um osciloscópio para analisar os dados que estavam sendo enviados e recebidos. Para testar apenas a transmissão de dados, conectou-se à ponta de prova do osciloscópio no pino TX, no entanto, os dados enviados não estavam sendo exibidos no osciloscópio. Devido a esse problema, não conseguiu realizar os testes de loopback.
 
 A principais instruções utilizadas para o desenvolvimento do código foram:
-str:  Essa instrução armazena o valor de um registrador na memória. Foi utilizada para alterar os valores dos registradores da UART, como o registrador CR, LCRH e baud rate.
+
+- str:  Essa instrução armazena o valor de um registrador na memória. Foi utilizada para alterar os valores dos registradores da UART, como o registrador CR, LCRH e baud rate.
+
 Exemplo:
-str r3,[r4,#2]
-ldr: Essa instrução carrega um valor salvo na memória para um registrador destino. Foi usada para impressões de caracteres no terminal e verificação de valores de alguns registradores da UART.
+
+*str r3,[r4,#2]*
+- ldr: Essa instrução carrega um valor salvo na memória para um registrador destino. Foi usada para impressões de caracteres no terminal e verificação de valores de alguns registradores da UART.
+
 Exemplo:
-	ldr r2,[r5,#3]
-mov: A instrução mov é usada para carregar o valor de um registrador (fonte) para outro registrador (destino), além disso, pode ser usado para carregar um valor constante para um registrador destino.
+
+*ldr r2,[r5,#3]*
+- mov: A instrução mov é usada para carregar o valor de um registrador (fonte) para outro registrador (destino), além disso, pode ser usado para carregar um valor constante para um registrador destino.
+
 Exemplos: 
-	mov r1,r5
-	mov r1,#10
+
+*mov r1,r5*
+
+*mov r1,#10*
+
 Essa instrução foi utilizada para realizar chamadas de sistema (Syscall) e para a configuração do baud rate.
-tst: É uma instrução condicional que testa o valor de um registrador com um operando e atualiza os sinalizadores de condição. Foi usada para identificar se a FIFO estava cheia e ler os dados da FIFO.
+- tst: É uma instrução condicional que testa o valor de um registrador com um operando e atualiza os sinalizadores de condição. Foi usada para identificar se a FIFO estava cheia e ler os dados da FIFO.
+
 Exemplo:
-	tst r2,#0x3E8
-b: Essa instrução é utilizada para desvio incondicional. Foi utilizada no código para direcionar a outro procedimento.
+
+*tst r2,#0x3E8*
+- b: Essa instrução é utilizada para desvio incondicional. Foi utilizada no código para direcionar a outro procedimento.
+
 Exemplo:
-b procedimento2
-bge e bne: São usadas para desvio condicional em conjunto com sinalizadores de condição. A bge desvia o fluxo quando um valor é maior ou igual ao outro e a bne quando dois valores são diferentes entre si. No sistema, foram usadas em resultados de chamadas de sistema e para analisar valores de registradores da UART.
-Exemplo:
-	 bge nomeProcedimento
-	 bne nomeProcedimento
+
+*b procedimento2*
+- bge e bne: São usadas para desvio condicional em conjunto com sinalizadores de condição. A bge desvia o fluxo quando um valor é maior ou igual ao outro e a bne quando dois valores são diferentes entre si. No sistema, foram usadas em resultados de chamadas de sistema e para analisar valores de registradores da UART.
+
+Exemplos:
+
+*bge nomeProcedimento*
+
+*bne nomeProcedimento*
 		
 
