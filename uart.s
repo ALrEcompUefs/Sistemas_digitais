@@ -1,19 +1,25 @@
-.align 2
-.data
-memdev: .asciz "/dev/mem"
-sucesso: .ascii "Abrimos /dev/gpiomen com sucesso\n"
-mapeado: .ascii "Mapeamos com sucesso\n"
-mapeado2: .ascii "Passou\n"
-erro: .ascii "Nao foi possivel abrir atraves do syscall open\n"
+@----------------------------------------------------------------------------------------------
+@ Define as constantes do tipo string usadas 
+	.align 2
+	.data
+	memdev: .asciz "/dev/mem"
+	sucesso: .ascii "Abrimos /dev/gpiomen com sucesso\n"
+	mapeado: .ascii "Mapeamos com sucesso\n"
+	mapeado2: .ascii "Passou\n"
+	erro: .ascii "Nao foi possivel abrir atraves do syscall open\n"
 
-.global gpiobase
-gpiobase: .word 0
-.global pwmbase
-pwmbase: .word 0
-.global uart0base
-uart0base: .word 0
-.global clkbase
-clkbase: .word 0
+@----------------------------------------------------------------------------------------------
+
+@----------------------------------------------------------------------------------------------
+@ Paramêtros relacionados a abertura de aquivo e mapeamento da memoria 
+	.global gpiobase
+	gpiobase: .word 0
+	.global pwmbase
+	pwmbase: .word 0
+	.global uart0base
+	uart0base: .word 0
+	.global clkbase
+	clkbase: .word 0
 
 .equ PERI_BASE, 0x200000 @ start of all devices
 @@ Base Physical Address of the GPIO registers
@@ -31,7 +37,9 @@ clkbase: .word 0
 .equ PROT_WRITE, 2
 .equ PROT_RDWR,PROT_READ|PROT_WRITE
 
-@@ some constants from fcntl.h
+@@ constantes da biblioteca from fcntl.h
+@ Usadas na syscall paara abertura de arquivo
+
 .equ O_RDONLY, 00000000
 .equ O_WRONLY, 00000001
 .equ O_RDWR, 00000002
@@ -45,6 +53,8 @@ clkbase: .word 0
 .equ O_SYNC, 00010000
 .equ O_FSYNC, O_SYNC
 .equ O_ASYNC, 00020000
+
+@----------------------------------------------------------------------------------------------
 
 .equ UART_FR, 0x18 @ Flag Register
 .equ UART_IBRD, 0x24 @ Divisor de baud rate inteiro
