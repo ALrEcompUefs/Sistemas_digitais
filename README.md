@@ -95,31 +95,40 @@ Para a realização do teste de loopback, utilizou-se um fio conector entre o pi
 A principais instruções utilizadas para o desenvolvimento do código foram:
 
 - str:  Essa instrução armazena o valor de um registrador na memória. Foi utilizada para alterar os valores dos registradores da UART, como o registrador CR, LCRH e baud rate.
-- 
+
 Exemplo:
-str r3,[r4,#2]
+
+*str r3,[r4,#2]*
 - ldr: Essa instrução carrega um valor salvo na memória para um registrador destino. Foi usada para impressões de caracteres no terminal e verificação de valores de alguns registradores da UART.
 
 Exemplo:
-	ldr r2,[r5,#3]
+	
+	*ldr r2,[r5,#3]*
 - mov: A instrução mov é usada para carregar o valor de um registrador (fonte) para outro registrador (destino), além disso, pode ser usado para carregar um valor constante para um registrador destino.
 
 Exemplos: 
-	mov r1,r5
-	mov r1,#10
+
+	*mov r1,r5*
+	
+	*mov r1,#10*
+
 Essa instrução foi utilizada para realizar chamadas de sistema (Syscall) e para a configuração do baud rate.
 - tst: É uma instrução condicional que testa o valor de um registrador com um operando e atualiza os sinalizadores de condição. Foi usada para identificar se a FIFO estava cheia e ler os dados da FIFO.
 
 Exemplo:
-	tst r2,#0x3E8
+	
+	*tst r2,#0x3E8*
 - b: Essa instrução é utilizada para desvio incondicional. Foi utilizada no código para direcionar a outro procedimento.
-- 
+
 Exemplo:
-b procedimento2
+
+*b procedimento2*
 - bge e bne: São usadas para desvio condicional em conjunto com sinalizadores de condição. A bge desvia o fluxo quando um valor é maior ou igual ao outro e a bne quando dois valores são diferentes entre si. No sistema, foram usadas em resultados de chamadas de sistema e para analisar valores de registradores da UART.
 
 Exemplos:
-	 bge nomeProcedimento
-	 bne nomeProcedimento
+
+	* bge nomeProcedimento*
+	
+	 *bne nomeProcedimento*
 		
 
