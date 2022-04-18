@@ -102,22 +102,22 @@ Exemplo:
 - ldr: Essa instrução carrega um valor salvo na memória para um registrador destino. Foi usada para impressões de caracteres no terminal e verificação de valores de alguns registradores da UART.
 
 Exemplo:
-	
-	*ldr r2,[r5,#3]*
+
+*ldr r2,[r5,#3]*
 - mov: A instrução mov é usada para carregar o valor de um registrador (fonte) para outro registrador (destino), além disso, pode ser usado para carregar um valor constante para um registrador destino.
 
 Exemplos: 
 
-	*mov r1,r5*
-	
-	*mov r1,#10*
+*mov r1,r5*
+
+*mov r1,#10*
 
 Essa instrução foi utilizada para realizar chamadas de sistema (Syscall) e para a configuração do baud rate.
 - tst: É uma instrução condicional que testa o valor de um registrador com um operando e atualiza os sinalizadores de condição. Foi usada para identificar se a FIFO estava cheia e ler os dados da FIFO.
 
 Exemplo:
-	
-	*tst r2,#0x3E8*
+
+*tst r2,#0x3E8*
 - b: Essa instrução é utilizada para desvio incondicional. Foi utilizada no código para direcionar a outro procedimento.
 
 Exemplo:
@@ -127,8 +127,8 @@ Exemplo:
 
 Exemplos:
 
-	* bge nomeProcedimento*
-	
-	 *bne nomeProcedimento*
+*bge nomeProcedimento*
+
+*bne nomeProcedimento*
 		
 
