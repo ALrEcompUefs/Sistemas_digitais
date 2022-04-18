@@ -10,11 +10,11 @@ Geralmente a interface de comunicação usada pelos dispositivos periféricos pa
 ## 2. Desenvolvimento
 Para o desenvolvimento do sistema proposto, foi utilizado o bloco de notas para a codificação e o computador Raspberry Pi 0. O processo de desenvolvimento, consistiu em codificação e posteriormente testes utilizando a Raspberry para verificar o funcionamento do código.
 
-A Raspberry Pi 0 tem processador ARM, utiliza o Assembly ARMv6, e o seu sistema operacional é o Raspbian, portanto, foi seguido a documentação do mesmo para programar o assembly e suas devidas syscalls. 
+A Raspberry Pi 0 tem processador ARM, utiliza o ``Assembly ARMv6``, e o seu sistema operacional é o Raspbian, portanto, foi seguido a documentação do mesmo para programar o assembly e suas devidas syscalls. 
 
-Dentro da Raspberry Pi 0 (Rasp0), têm se um hardware chamado Universal Asynchronous Receiver/Transmitter (UART) Ele fará a nossa comunicação de maneira serial, utilizando os pinos Receiver (Rx) e Transmitter (Tx), que são especificados na documentação da Rasp0.
+Dentro da Raspberry Pi 0 (Rasp0), têm se um hardware chamado Universal Asynchronous Receiver/Transmitter (``UART``) Ele fará a nossa comunicação de maneira serial, utilizando os pinos Receiver (Rx) e Transmitter (Tx), que são especificados na documentação da Rasp0.
 
-O sistema desenvolvido realiza a configuração dos parâmetros de comunicação da UART: a velocidade (baud rate), o tipo de paridade, a quantidade de bits de parada (stop bits) e a quantidade de bits de mensagem.
+O sistema desenvolvido realiza a configuração dos parâmetros de comunicação da ``UART``: a velocidade (baud rate), o tipo de paridade, a quantidade de bits de parada (stop bits) e a quantidade de bits de mensagem.
 
 Inicialmente, foi necessário realizar o mapeamento da memória física da Raspberry para obter-se um endereço virtual. Isso foi feito utilizando a syscall #5 do Linux, a syscall Open.
 ```s
@@ -48,11 +48,11 @@ A syscall retorna um valor >0 caso tenha conseguido abrir o arquivo e o valor -1
 
 
 ```s
-@---------------Função mapear GPIO-------------------------------------------------------------
+@---------------Função mapear UART-------------------------------------------------------------
 @ Com o arquivo dev/Mem aberto realiza o mapeamento da memoria virtual da raspberry
 
-mapear_gpio:
-    @ Mapear a GPIO
+mapear_uart:
+    @ Mapear a UART
     mov r7,#192 		@ syscall do mmap2
     ldr r5,=baseUART0	@ Carrega no registrador r5  o enereço base da UART (definido no cabeçalho)
     mov r0,#0 			@kernel escolhe a memoria
@@ -68,24 +68,79 @@ mapear_gpio:
 ```
 No código acima, utilizamos o resultado da syscall Open, feita anteriormente, salvando-a no r4, assim utilizaremos em conjunto com outros 5 parâmetros requisitados pela syscall mmap2.
 
-Nesses parâmetros, informamos o endereço da memória da UART que queremos mapear, o tamanho do mapeamento (4096), se podemos ler e escrever, quem pode acessar essa memória mapeada, e o endereço que queremos alocar. Precisamos informar onde queremos mapear por conta que o Sistema Operacional (SO) não permite acesso diretamente ao endereço. Então fazemos um mapeamento virtual da memória, que o SO nos permite acessar.
+Nesses parâmetros, informamos o endereço da memória da ``UART`` que queremos mapear, o tamanho do mapeamento (4096), se podemos ler e escrever, quem pode acessar essa memória mapeada, e o endereço que queremos alocar. Precisamos informar onde queremos mapear por conta que o Sistema Operacional (SO) não permite acesso diretamente ao endereço. Então fazemos um mapeamento virtual da memória, que o SO nos permite acessar.
 
-Após o mapeamento da memória, iniciou-se a configuração da UART. Seguindo os seguintes passos:
+Após o mapeamento da memória, iniciou-se a configuração da ``UART``. Seguindo os seguintes passos:
 
-1. Desabilitar a UART;
+1. Desabilitar a ``UART``;
 2. Esperar o fim de uma transmissão;
 3. Esvaziar/desabilitar a FIFO de transmissão e recepção;
 4. Configurar os parâmetros de comunicação;
 5. Reprogramar o registrador de controle da UART;
 6. Habilitar a UART.
 
-Para realizar os passos citados acima, se tornou necessário utilizar registradores. O registrador responsável por desabilitar e habilitar a UART é o registrador de controle (CR). Já o registrador responsável por desabilitar a FIFO e configurar os parâmetros de comunicação é o registrador de controle de linha (LCRH). 
+Para realizar os passos citados acima, se tornou necessário utilizar registradores. O registrador responsável por desabilitar e habilitar a ``UART`` é o registrador de controle (CR). Já o registrador responsável por desabilitar a FIFO e configurar os parâmetros de comunicação é o registrador de controle de linha (LCRH). 
 
-Para desabilitar a UART, setou o bit 0 (UARTEN) do CR para 0. Para analisar se está acontecendo uma transmissão de dados, verifica em um loop se o valor do bit 5 (TXFF) do registrador de flags (UART_FR) é igual a 1, se sim, indica que a FIFO está cheia e continua no loop até que o valor seja 0, indicando que a FIFO está vazia. Em seguida, para desabilitar a FIFO, define-se o bit 4(FEN) do LCRH como 0.
+Para desabilitar a ``UART``, setou o bit 0 (UARTEN) do CR para 0. 
 
-Os parâmetros de comunicação solicitados para esse sistema podem ser definidos através do LCRH como: a paridade é definida através do bit 1(PEN) e bit 2 (EPS), o bit PEN habilita a paridade quando seu valor é 1 e desabilita quando é 0, já o bit EPS define o tipo de paridade, 0 indica paridade ímpar e 1 indica paridade par; A quantidade de stop bits é configurada pelo bit 3 (STP2), no qual, definido como 0 envia um bit de parada é definido como 1 envia dois bits de parada; O tamanho da mensagem nesse sistema pode variar entre 7 ou 8 bits, e é definido nos bits 5-6 (WLEN), quando está em 10 indica que o tamanho da mensagem é de 7 bits e em 11 indica que o tamanho da mensagem é de 8 bits. Para que seja possível o envio de dados, é necessário habilitar neste momento a FIFO, configurando o bit FEN como 1. 
+```s
+@ Desabilita a UART no registrador CR
+@ Para que as configurações possam ser feitas
 
-Outro parâmetro a ser configurado é o baud rate, o baud rate é a taxa de transmissão de bits da mensagem. No manual da UART é informado que o baud rate é definido junto a frequência de clock da UART e sendo assim, varia conforme o clock varia.  Para configurar o baud rate é preciso definir o valor do BAUDDIV parâmetro interno que é usado para o seu cálculo. Usando a equação (BAUDDIV =  Freq / (BAUD_RATE*16) obtemos o valor a ser informado. Como o valor do BAUDDIV pode ser com ponto decimal, a UART disponibiliza dois registradores o IBRD (integral baud rate divisor) e o FBRD (fracitional baud rate divisor)  para representar o número, inserindo a parte inteira no IBRD e a fracional no FRBD.
+desabilitar_uart: @ Zera o CR
+	mov r0,#0
+	str r0,[r5,#UART_CR]
+	b limpar_fifo
+
+@-----------------Limpar a FIFO----------------------------------------------------------------
+@ Faremos um Flush na FIFO colocando um 0 no FEN bit (Fica no LCRH)
+
+limpar_fifo:
+	mov r0,#0
+	str r0,[r5,#UART_LCRH]
+	b desabilitar_fifo
+
+```
+
+Para analisar se está acontecendo uma transmissão de dados, verifica em um loop se o valor do bit 5 (TXFF) do registrador de flags (UART_FR) é igual a 1, se sim, indica que a FIFO está cheia e continua no loop até que o valor seja 0, indicando que a FIFO está vazia. Em seguida, para desabilitar a FIFO, define-se o bit 4(FEN) do LCRH como 0.
+
+```s
+desabilitar_fifo: @ Zera o LCRH
+	
+	putlp:
+	ldr r2,[r5,#UART_FR] @ read the flag resister
+	tst r2,#UART_TXFF @Verifica se a FIFO transmiter esta cheia
+	bne putlp
+	mov r0, #UART_FEND
+	str r0, [r5,#UART_LCRH]
+	b configurar_baudrate
+
+@----------------------------------------------------------------------------------------------
+```
+Os parâmetros de comunicação solicitados para esse sistema podem ser definidos através do LCRH como: 
+- a paridade é definida através do bit 1(PEN) e bit 2 (EPS)
+- o bit PEN habilita a paridade quando seu valor é 1 e desabilita quando é 0
+- o bit EPS define o tipo de paridade, 0 indica paridade ímpar e 1 indica paridade par
+- A quantidade de stop bits é configurada pelo bit 3 (STP2), no qual, definido como 0 envia um bit de parada e, definido como 1, envia dois bits de parada
+
+O tamanho da mensagem nesse sistema pode variar entre 7 ou 8 bits, e é definido nos bits 5-6 (WLEN), quando está em ``1 0`` indica que o tamanho da mensagem é de 7 bits e em ``1 1`` indica que o tamanho da mensagem é de 8 bits. Para que seja possível o envio de dados, é necessário habilitar neste momento a FIFO, configurando o bit FEN como 1. 
+
+Outro parâmetro a ser configurado é o baud rate, o baud rate é a taxa de transmissão de bits da mensagem. No manual da UART é informado que o baud rate é definido junto a frequência de clock da ``UART`` e sendo assim, varia conforme o clock varia.  Para configurar o baud rate é preciso definir o valor do BAUDDIV parâmetro interno que é usado para o seu cálculo. 
+
+Usando a equação (BAUDDIV =  Freq / (BAUD_RATE*16) obtemos o valor a ser informado. Como o valor do BAUDDIV pode ser com ponto decimal, a ``UART`` disponibiliza dois registradores o IBRD (integral baud rate divisor) e o FBRD (fracitional baud rate divisor)  para representar o número, inserindo a parte inteira no IBRD e a fracional no FRBD.
+
+```s
+configurar_baudrate: @ Escolhemos 9600 baud
+@@ (3Mhz / (9600 * 16)) = 19,53125
+@@ 10011 no integerbaud (19)
+@@ 110101 no fractionalbaud (53)
+@@ numero seria 19,53
+	mov r0, #19
+	str r0,[r5,#UART_IBRD]
+	mov r0, #53
+	str r0,[r5,#UART_FBRD]
+	b configurar_LCRH
+```
 
 Após a configuração dos parâmetros de comunicação, reprograma-se o registrador de controle para habilitar a UART e a transmissão e recepção de dados. Para isso, o bit UARTEN é definido como 1 para habilitar a UART, e os bits 8(TXE) e 9(RXE) são definidos como 1 para habilitar respectivamente a transmissão e recepção de dados.
 Para transmitir os dados através da UART, salva-se o dado que deseja enviar em um registrador e armazena no registrador DR. Ao receber os dados, o receptor também deverá ler da memória o valor do registrador DR para obter o dado. Com o registrador DR, os dados são transmitidos ou recebidos um byte de cada vez, escrever nele significa escrever na FIFO.
