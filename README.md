@@ -97,7 +97,6 @@ A principais instruções utilizadas para o desenvolvimento do código foram:
 - str:  Essa instrução armazena o valor de um registrador na memória. Foi utilizada para alterar os valores dos registradores da UART, como o registrador CR, LCRH e baud rate.
 
 Exemplo:
-
 *str r3,[r4,#2]*
 - ldr: Essa instrução carrega um valor salvo na memória para um registrador destino. Foi usada para impressões de caracteres no terminal e verificação de valores de alguns registradores da UART.
 
