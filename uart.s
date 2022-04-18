@@ -1,55 +1,38 @@
 @----------------------------------------------------------------------------------------------
-@ Define as constantes do tipo string usadas 
+@ Define as constantes usadas, do tipo string
 	.align 2
 	.data
 	memdev: .asciz "/dev/mem"
 	sucesso: .ascii "Abrimos /dev/gpiomen com sucesso\n"
 	mapeado: .ascii "Mapeamos com sucesso\n"
-	mapeado2: .ascii "Passou\n"
-	erro: .ascii "Nao foi possivel abrir atraves do syscall open\n"
 
 @----------------------------------------------------------------------------------------------
 
 @----------------------------------------------------------------------------------------------
 @ Paramêtros relacionados a abertura de aquivo e mapeamento da memoria 
-	.global gpiobase
-	gpiobase: .word 0
-	.global pwmbase
-	pwmbase: .word 0
-	.global uart0base
-	uart0base: .word 0
-	.global clkbase
-	clkbase: .word 0
+.global gpiobase
+gpiobase: .word 0
+.global pwmbase
+pwmbase: .word 0
+.global uart0base
+uart0base: .word 0
+.global clkbase
+clkbase: .word 0
 
-.equ PERI_BASE, 0x200000 @ start of all devices
-@@ Base Physical Address of the GPIO registers
-.equ GPIO_BASE, (PERI_BASE + 0x200000)
-@@ Base Physical Address of the PWM registers
-.equ PWM_BASE, (PERI_BASE + 0x20C000)
-@@ Base Physical Address of the UART 0 device
-.equ UART0_BASE,(PERI_BASE + 0x20201)
-@@ Base Physical Address of the Clock/timer registers
-.equ CLK_BASE, (PERI_BASE + 0x101000)
+.equ PERI_BASE, 0x200000 @ start of all devices @ Endereço base da Raspberry
+.equ UART0_BASE,(PERI_BASE + 0x20201) @ Endereço base da UART
 
-.equ MAP_FAILED,-1
-.equ MAP_SHARED, 1
-.equ PROT_READ, 1
-.equ PROT_WRITE, 2
-.equ PROT_RDWR,PROT_READ|PROT_WRITE
+.equ MAP_SHARED, 1 @Indica que o mapeamento da memória virtual é compartilhado
+.equ PROT_READ, 1 @Modo de leitura
+.equ PROT_WRITE, 2 @Modo de escrita
+.equ PROT_RDWR,PROT_READ|PROT_WRITE @Modo de leitura e escrita 
 
-@@ constantes da biblioteca from fcntl.h
-@ Usadas na syscall paara abertura de arquivo
-
+@ constantes da biblioteca from fcntl.h usadas na syscall para abertura de arquivo
 .equ O_RDONLY, 00000000
 .equ O_WRONLY, 00000001
 .equ O_RDWR, 00000002
-.equ O_CREAT, 00000100
-.equ O_EXCL, 00000200
-.equ O_NOCTTY, 00000400
 .equ O_TRUNC, 00001000
 .equ O_APPEND, 00002000
-.equ O_NONBLOCK, 00004000
-.equ O_NDELAY, O_NONBLOCK
 .equ O_SYNC, 00010000
 .equ O_FSYNC, O_SYNC
 .equ O_ASYNC, 00020000
@@ -58,64 +41,51 @@
 @	ENDEREÇOS DO REGISTRADORES DA UART E DEFINIÇÃO DOS VALORES DO REGISTRADORES
 
 @--------- REGISTRADORES---------------------------
-.equ UART_DR, 0x00 		@ Registrador de dados
+.equ UART_DR, 0x00 	@ Registrador de dados
 .equ UART_LCRH, 0x2C 	@ Registrador de controle de linha
-.equ UART_FR, 0x18 		@ Flag Register
+.equ UART_FR, 0x18 	@ Flag Register
 .equ UART_IBRD, 0x24 	@ Divisor de baud rate inteiro
 .equ UART_FBRD, 0x28 	@ Divisor de baud rate fracionário
-.equ UART_CR, 0x30 		@ Registrador do controlador de registro 
+.equ UART_CR, 0x30 	@ Registrador de controle
 
 @-------------Bits do LCRH---------------------------------------------------------------------
-@ Disposição do bits do controlador de linha de registro 
-	.equ UART_SPS, (1<<7) @ enable stick parity --->>>>> Não entendi o que é ele
-	.equ UART_WLEN1, (1<<6) @ MSB do tamanho de mensagem
-	.equ UART_WLEN0, (1<<5) @ LSB do tamanho de mensagem
-	.equ UART_FEN, (1<<4) @ Habilita FIFOs
-	.equ UART_FEND, (0<<4) @ Desabilita FIFOs
-	.equ UART_STP2, (1<<3) @ Define a quantidade de stop bits
-	.equ UART_EPS, (1<<2) @ Seleciona o tipo de paridade PAR
-	.equ UART_PEN, (1<<1) @ Habilita paridade
-	.equ UART_BRK, (1<<0) @ Envia pausa de dados
+@ Disposição do bits do registrador de controle de linha e definindo valor 1
+.equ UART_SPS, (1<<7) @ enable stick parity
+.equ UART_WLEN1, (1<<6) @ MSB do tamanho de mensagem
+.equ UART_WLEN0, (1<<5) @ LSB do tamanho de mensagem
+.equ UART_FEN, (1<<4) @ Habilita FIFOs
+.equ UART_FEND, (0<<4) @ Desabilita FIFOs
+.equ UART_STP2, (1<<3) @ Define a quantidade de stop bits como 2
+.equ UART_EPS, (1<<2) @ Seleciona o tipo de paridade: PAR
+.equ UART_PEN, (1<<1) @ Habilita paridade
+.equ UART_BRK, (1<<0) @ Envia pausa de dados
 
 
-@-------------Bits do DR-----------------------------------------------------------------------
-@ Configura paramêtros do data register
-@@ Bits do DR, que verificam erros
-	.equ UART_OE, (1<<11) @ overrun error bit
-	.equ UART_BE, (1<<10) @ break error bit
-	.equ UART_PE, (1<<9) @ bit de erro de paridade
-	.equ UART_FE, (1<<8 ) @ bit de erro de enquadramento
+@-------------Bits do DR-----------------------------
+@ Configura paramêtros do data register que verificam erros
+.equ UART_OE, (1<<11) @ erro de bit de superação
+.equ UART_BE, (1<<10) @ erro de bit de parada
+.equ UART_PE, (1<<9) @ bit de erro de paridade
+.equ UART_FE, (1<<8 ) @ bit de erro de enquadramento
 
-@-------------Bits do FR-----------------------------------------------------------------------
-
-@ Configura parametros do FLAG register
-@@ Bits for the FR (flags register)
-	.equ UART_RI, (1<<8) @ Unsupported
-	.equ UART_TXFE, (1<<7) @ Transmit FIFO empty
-	.equ UART_RXFF, (1<<6) @ Receive FIFO full
-	.equ UART_TXFF, (1<<5) @ Transmit FIFO full
-	.equ UART_RXFE, (1<<4) @ Receive FIFO empty
-	.equ UART_BUSY, (1<<3) @ UART is busy xmitting
-	.equ UART_DCD, (1<<2) @ Unsupported
-	.equ UART_DSR, (1<<1) @ Unsupported
-	.equ UART_CTS, (1<<0) @ Clear to send
-
-@----------------------------------------------------------------------------------------------
+@ Configura parametros (bits) do FLAG register
+.equ UART_TXFE, (1<<7) @ FIFO de Transmissão vazia
+.equ UART_RXFF, (1<<6) @ FIFO de recepção cheia
+.equ UART_TXFF, (1<<5) @ FIFO de transmissão cheia
+.equ UART_RXFE, (1<<4) @ FIFO de recepção vazia
+.equ UART_BUSY, (1<<3) @ Indica que a uart está ocupada trasmitindo
+.equ UART_CTS, (1<<0) @ Limpa para enviar
 
 
-@---------------------Bits do CR---------------------------------------------------------------
-
-@@ Bits do registrador CR
-.equ UART_RXE, (1<<9) @ Enable receiver
-.equ UART_RXD, (0<<9) @ Disable receiver
-.equ UART_TXE, (1<<8) @ Enable transmitter
-.equ UART_TXD, (0<<8) @ Disable transmitter
-.equ UART_LBE, (1<<7) @ Enable loopback
-.equ UART_LBD, (0<<7) @ Disable loopback
-.equ UART_SIRLP, (1<<2) @ Unsupported
-.equ UART_SIREN, (1<<1) @ Unsupported
-.equ UART_UARTEN, (1<<0) @ Enable UART
-.equ UART_UARTDS, (0<<0) @ Disable UART
+@ Bits do registrador CR
+.equ UART_RXE, (1<<9) @ Habilita recepção
+.equ UART_RXD, (0<<9) @ Desabilita recepção
+.equ UART_TXE, (1<<8) @ Habilita transmissão
+.equ UART_TXD, (0<<8) @ Desabilita transmissão
+.equ UART_LBE, (1<<7) @ Habilita loopback
+.equ UART_LBD, (0<<7) @ Desabilita loopback
+.equ UART_UARTEN, (1<<0) @ Habilita UART
+.equ UART_UARTDS, (0<<0) @ Desabilita UART
 
 .equ HabilitarUART, (UART_UARTEN | UART_TXE | UART_RXE) @ binario equivalente a configuração a ser dwefinida no registrador CR
 
@@ -274,16 +244,6 @@ fechar_programa:
     mov r0,#0
     mov r7, #1
     svc 0
-@----------------------------------------------------------------------------------------------
-@ Função que executa uma teste de print para debug sofisticado
-print_test:
-    mov r0,#1 @ printar mensagem no terminal
-    ldr r1,=mapeado2 @ a mensagem em si
-    mov r2,#7 @ tamanho da mensagem
-    mov r7,#4 @ syscall pro write
-    svc 0 @ chamando a syscall
-    b fechar_programa
-
 @----------------------------------------------------------------------------------------------
 @ Mensagem de erro quando ocorre erro no mapeamento
 mensagem_erro:
