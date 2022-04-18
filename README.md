@@ -27,7 +27,10 @@ _start:
     subs r3,r0,#0
     bge aberto @Se foi 0, abre
     b mensagem_erro @se foi diferente de 0
-    
+    Figura 1. Início do nosso código
+Como podemos ver na imagem do código acima, carregamos 4 parâmetros antes de chamarmos a syscall. Esses parâmetros carregam o caminho em que queremos abrir o arquivo, como queremos abrir (somente leitura, leitura e escrita ou só escrita). No ARM, o r7  é o qual colocamos o valor da nossa syscall, e chamamos utilizando o svc 0
+A syscall retorna um valor >0 caso tenha conseguido abrir o arquivo e o valor -1 caso não tenha. Utilizamos o subs para verificar se o valor de retorno, que fica no r0, é maior ou não que 0. Caso seja, seguimos com a execução do nosso código.
+
 aberto:     @ mostrar mensagem de sucesso
     mov r4,r0 @ Movendo o file descriptor pro r4
     mov r0,#1 @ printar mensagem no terminal
@@ -37,3 +40,45 @@ aberto:     @ mostrar mensagem de sucesso
     svc 0 @ chamando a syscall
     b mapear_gpio
 ```
+Figura 2. Função de mapeamento da GPIO
+No código acima, utilizamos o resultado da syscall Open, feita anteriormente, salvando-a no r4, assim utilizaremos em conjunto com outros 5 parâmetros requisitados pela syscall mmap2.
+Nesses parâmetros, informamos o endereço da memória da UART que queremos mapear, o tamanho do mapeamento (4096), se podemos ler e escrever, quem pode acessar essa memória mapeada, e o endereço que queremos alocar. Precisamos informar onde queremos mapear por conta que o Sistema Operacional (SO) não permite acesso diretamente ao endereço. Então fazemos um mapeamento virtual da memória, que o SO nos permite acessar.
+Após o mapeamento da memória, iniciou-se a configuração da UART. Seguindo os seguintes passos:
+Desabilitar a UART;
+Esperar o fim de uma transmissão;
+Esvaziar/desabilitar a FIFO de transmissão e recepção;
+Configurar os parâmetros de comunicação;
+Reprogramar o registrador de controle da UART;
+Habilitar a UART.
+Para realizar os passos citados acima, se tornou necessário utilizar registradores. O registrador responsável por desabilitar e habilitar a UART é o registrador de controle (CR). Já o registrador responsável por desabilitar a FIFO e configurar os parâmetros de comunicação é o registrador de controle de linha (LCRH). 
+Para desabilitar a UART, setou o bit 0 (UARTEN) do CR para 0. Para analisar se está acontecendo uma transmissão de dados, verifica em um loop se o valor do bit 5 (TXFF) do registrador de flags (UART_FR) é igual a 1, se sim, indica que a FIFO está cheia e continua no loop até que o valor seja 0, indicando que a FIFO está vazia. Em seguida, para desabilitar a FIFO, define-se o bit 4(FEN) do LCRH como 0.
+Os parâmetros de comunicação solicitados para esse sistema podem ser definidos através do LCRH como: a paridade é definida através do bit 1(PEN) e bit 2 (EPS), o bit PEN habilita a paridade quando seu valor é 1 e desabilita quando é 0, já o bit EPS define o tipo de paridade, 0 indica paridade ímpar e 1 indica paridade par; A quantidade de stop bits é configurada pelo bit 3 (STP2), no qual, definido como 0 envia um bit de parada é definido como 1 envia dois bits de parada; O tamanho da mensagem nesse sistema pode variar entre 7 ou 8 bits, e é definido nos bits 5-6 (WLEN), quando está em 10 indica que o tamanho da mensagem é de 7 bits e em 11 indica que o tamanho da mensagem é de 8 bits. Para que seja possível o envio de dados, é necessário habilitar neste momento a FIFO, configurando o bit FEN como 1. 
+Outro parâmetro a ser configurado é o baud rate, o baud rate é a taxa de transmissão de bits da mensagem. No manual da UART é informado que o baud rate é definido junto a frequência de clock da UART e sendo assim, varia conforme o clock varia.  Para configurar o baud rate é preciso definir o valor do BAUDDIV parâmetro interno que é usado para o seu cálculo. Usando a equação (BAUDDIV =  Freq / (BAUD_RATE*16) obtemos o valor a ser informado. Como o valor do BAUDDIV pode ser com ponto decimal, a UART disponibiliza dois registradores o IBRD (integral baud rate divisor) e o FBRD (fracitional baud rate divisor)  para representar o número, inserindo a parte inteira no IBRD e a fracional no FRBD.
+Após a configuração dos parâmetros de comunicação, reprograma-se o registrador de controle para habilitar a UART e a transmissão e recepção de dados. Para isso, o bit UARTEN é definido como 1 para habilitar a UART, e os bits 8(TXE) e 9(RXE) são definidos como 1 para habilitar respectivamente a transmissão e recepção de dados.
+Para transmitir os dados através da UART, salva-se o dado que deseja enviar em um registrador e armazena no registrador DR. Ao receber os dados, o receptor também deverá ler da memória o valor do registrador DR para obter o dado. Com o registrador DR, os dados são transmitidos ou recebidos um byte de cada vez, escrever nele significa escrever na FIFO.
+Para a realização do teste de loopback, utilizou-se um fio conector entre o pino TX e RX da UART e um osciloscópio para analisar os dados que estavam sendo enviados e recebidos. Para testar apenas a transmissão de dados, conectou-se à ponta de prova do osciloscópio no pino TX, no entanto, os dados enviados não estavam sendo exibidos no osciloscópio. Devido a esse problema, não conseguiu realizar os testes de loopback.
+
+A principais instruções utilizadas para o desenvolvimento do código foram:
+str:  Essa instrução armazena o valor de um registrador na memória. Foi utilizada para alterar os valores dos registradores da UART, como o registrador CR, LCRH e baud rate.
+Exemplo:
+str r3,[r4,#2]
+ldr: Essa instrução carrega um valor salvo na memória para um registrador destino. Foi usada para impressões de caracteres no terminal e verificação de valores de alguns registradores da UART.
+Exemplo:
+	ldr r2,[r5,#3]
+mov: A instrução mov é usada para carregar o valor de um registrador (fonte) para outro registrador (destino), além disso, pode ser usado para carregar um valor constante para um registrador destino.
+Exemplos: 
+	mov r1,r5
+	mov r1,#10
+Essa instrução foi utilizada para realizar chamadas de sistema (Syscall) e para a configuração do baud rate.
+tst: É uma instrução condicional que testa o valor de um registrador com um operando e atualiza os sinalizadores de condição. Foi usada para identificar se a FIFO estava cheia e ler os dados da FIFO.
+Exemplo:
+	tst r2,#0x3E8
+b: Essa instrução é utilizada para desvio incondicional. Foi utilizada no código para direcionar a outro procedimento.
+Exemplo:
+b procedimento2
+bge e bne: São usadas para desvio condicional em conjunto com sinalizadores de condição. A bge desvia o fluxo quando um valor é maior ou igual ao outro e a bne quando dois valores são diferentes entre si. No sistema, foram usadas em resultados de chamadas de sistema e para analisar valores de registradores da UART.
+Exemplo:
+	 bge nomeProcedimento
+	 bne nomeProcedimento
+		
+
