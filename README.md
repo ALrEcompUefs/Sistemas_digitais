@@ -8,6 +8,10 @@ A internet das coisas ou IOT (do inglês internet of things) vem ganhando espaç
 Geralmente a interface de comunicação usada pelos dispositivos periféricos para comunicação com o computador é por comunicação serial.
 
 ## 2. Desenvolvimento
+Para o desenvolvimento do sistema proposto, foi utilizado o bloco de notas para a codificação e o computador Raspberry Pi 0. O processo de desenvolvimento, consistiu em codificação e posteriormente testes utilizando a Raspberry para verificar o funcionamento do código.
+A Raspberry Pi 0 tem processador ARM, utiliza o Assembly ARMv6, e o seu sistema operacional é o Raspbian, portanto, foi seguido a documentação do mesmo para programar o assembly e suas devidas syscalls. 
+Dentro da Raspberry Pi 0 (Rasp0), têm se um hardware chamado Universal Asynchronous Receiver/Transmitter (UART) Ele fará a nossa comunicação de maneira serial, utilizando os pinos Receiver (Rx) e Transmitter (Tx), que são especificados na documentação da Rasp0.
+O sistema desenvolvido realiza a configuração dos parâmetros de comunicação da UART: a velocidade (baud rate), o tipo de paridade, a quantidade de bits de parada (stop bits) e a quantidade de bits de mensagem.
 Inicialmente, foi necessário realizar o mapeamento da memória física da Raspberry para obter-se um endereço virtual. Isso foi feito utilizando a syscall #5 do Linux, a syscall Open.
 ```s
 .global _start
