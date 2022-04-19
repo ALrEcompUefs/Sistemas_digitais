@@ -89,12 +89,10 @@ desabilitar_uart:
 	mov r0,#0
 	str r0,[r5,#UART_CR] @ Zera o CR
 	str r0,[r5,#UART_DR] @ Zera o DR
-	b desabilitar_fifo @ Procedimento para desabilitar a FIFO
 ```
 Para analisar se está acontecendo uma transmissão de dados, verifica em um loop se o valor do bit 5 (TXFF) do registrador de flags (UART_FR) é igual a 1, se sim, indica que a FIFO está cheia e continua no loop até que o valor seja 0, indicando que a FIFO está vazia. Em seguida, para desabilitar a FIFO, define-se o bit 4(FEN) do LCRH como 0.
 
 ```s
-@-----------------Desabilitar FIFO----------------------------------
 desabilitar_fifo: 
 	loop: 
 	ldr r2,[r5,#UART_FR] @ Ler o registrador de flags
@@ -102,24 +100,22 @@ desabilitar_fifo:
 	bne loop @ Continua no loop enquanto estiver cheia
 	mov r0, #0
 	str r0, [r5,#UART_LCRH] @Desabilita a FIFO
-	b configurar_baudrate @Configura Baud Rate
-
-@----------------------------------------------------------------------------------------------
 ```
 Os parâmetros de comunicação solicitados para esse sistema podem ser definidos através do LCRH como: 
-- a paridade é definida através do bit 1(PEN) e bit 2 (EPS)
-- o bit PEN habilita a paridade quando seu valor é 1 e desabilita quando é 0
-- o bit EPS define o tipo de paridade, 0 indica paridade ímpar e 1 indica paridade par
-- A quantidade de stop bits é configurada pelo bit 3 (STP2), no qual, definido como 0 envia um bit de parada e, definido como 1, envia dois bits de parada
-
-O tamanho da mensagem nesse sistema pode variar entre 7 ou 8 bits, e é definido nos bits 5-6 (WLEN), quando está em ``1 0`` indica que o tamanho da mensagem é de 7 bits e em ``1 1`` indica que o tamanho da mensagem é de 8 bits. Para que seja possível o envio de dados, é necessário habilitar neste momento a FIFO, configurando o bit FEN como 1. 
-
-Outro parâmetro a ser configurado é o baud rate, o baud rate é a taxa de transmissão de bits da mensagem. No manual da UART é informado que o baud rate é definido junto a frequência de clock da ``UART`` e sendo assim, varia conforme o clock varia.  Para configurar o baud rate é preciso definir o valor do BAUDDIV parâmetro interno que é usado para o seu cálculo. 
-
-Usando a equação (BAUDDIV =  Freq / (BAUD_RATE*16) obtemos o valor a ser informado. Como o valor do BAUDDIV pode ser com ponto decimal, a ``UART`` disponibiliza dois registradores o IBRD (integral baud rate divisor) e o FBRD (fracitional baud rate divisor)  para representar o número, inserindo a parte inteira no IBRD e a fracional no FRBD.
+- A paridade é definida através do bit 1(PEN) e bit 2 (EPS), o bit PEN habilita a paridade quando seu valor é 1 e desabilita quando é 0, já o bit EPS define o tipo de paridade, 0 indica paridade ímpar e 1 indica paridade par;
+- A quantidade de stop bits é configurada pelo bit 3 (STP2), no qual, definido como 0 envia um bit de parada é definido como 1 envia dois bits de parada; 
+- O tamanho da mensagem nesse sistema pode variar entre 7 ou 8 bits, e é definido nos bits 5-6 (WLEN), quando está em ``1 0`` indica que o tamanho da mensagem é de 7 bits e em ``1 1`` indica que o tamanho da mensagem é de 8 bits.
+Para que seja possível o envio de dados, é necessário habilitar neste momento a FIFO, configurando o bit FEN como 1. 
+```s
+@stick parity desabilitado, tamanho de mensagem 8, FIFO ativa, 2 stop bits, paridade habilitada e ímpar
+configurar_LCRH:
+	.equ UART_CONFIG, (UART_WLEN1 | UART_WLEN0 | UART_FEN | UART_STP2 | UART_PEN ) @Define as configurações
+	mov r0,#UART_CONFIG
+	str r0,[r5,#UART_LCRH] @Salva as configurações no registrador LCRH
+```
+Outro parâmetro a ser configurado é o baud rate, o baud rate é a taxa de transmissão de bits da mensagem. No manual da UART é informado que o baud rate é definido junto a frequência de clock da ``UART`` e sendo assim, varia conforme o clock varia.  Para configurar o baud rate é preciso definir o valor do BAUDDIV parâmetro interno que é usado para o seu cálculo.  Usando a equação (BAUDDIV =  Freq / (BAUD_RATE*16) obtemos o valor a ser informado. Como o valor do BAUDDIV pode ser com ponto decimal, a ``UART`` disponibiliza dois registradores o IBRD (integral baud rate divisor) e o FBRD (fracitional baud rate divisor)  para representar o número, inserindo a parte inteira no IBRD e a fracional no FRBD.
 
 ```s
-@----------------- Configurar o baudrate----------------------------
 @@ (3Mhz / (9600 * 16)) = 19,53125
 @ Valor de Baud rate: 19,53
 @@ 10011 no integerBaud (19)
@@ -129,22 +125,16 @@ configurar_baudrate:
 	str r0,[r5,#UART_IBRD]
 	mov r0, #53
 	str r0,[r5,#UART_FBRD]
-	b configurar_LCRH
 ```
 
 Após a configuração dos parâmetros de comunicação, reprograma-se o registrador de controle para habilitar a ``UART`` e a transmissão e recepção de dados. Para isso, o bit UARTEN é definido como 1 para habilitar a UART, e os bits 8(TXE) e 9(RXE) são definidos como 1 para habilitar respectivamente a transmissão e recepção de dados.
 
 ```s
-@-----------------Configura os parâmetros de comunicação--------------------
-@stick parity desabilitado, tamanho de mensagem 8, FIFO ativa, 2 stop bits, paridade habilitada e ímpar
-configurar_LCRH:
-	.equ UART_CONFIG, (UART_WLEN1 | UART_WLEN0 | UART_FEN | UART_STP2 | UART_PEN ) @Define as configurações
-	mov r0,#UART_CONFIG
-	str r0,[r5,#UART_LCRH] @Salva as configurações no registrador LCRH
-	b configurar_CR @Configurar o registrador CR
-	
-@--------------------DEFINIR CR----------------------------------------------
 @Habilita a UART, a transmissão e recepção de dados
+.equ HabilitarUART, (UART_UARTEN | UART_TXE | UART_RXE)
+Final_Bits:
+	.word HabilitarUART
+	
 configurar_CR:
 	ldr r0,=Final_Bits	@ carrega no registrador r0 a configuração em Final_bits (da mémoria)
 	str r0,[r5,#UART_CR]	@ Salva no registrador CR, as configurações
