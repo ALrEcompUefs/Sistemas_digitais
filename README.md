@@ -91,17 +91,7 @@ desabilitar_uart: @ Zera o CR
 	mov r0,#0
 	str r0,[r5,#UART_CR]
 	b limpar_fifo
-
-@-----------------Limpar a FIFO----------------------------------------------------------------
-@ Faremos um Flush na FIFO colocando um 0 no FEN bit (Fica no LCRH)
-
-limpar_fifo:
-	mov r0,#0
-	str r0,[r5,#UART_LCRH]
-	b desabilitar_fifo
-
 ```
-
 Para analisar se está acontecendo uma transmissão de dados, verifica em um loop se o valor do bit 5 (TXFF) do registrador de flags (UART_FR) é igual a 1, se sim, indica que a FIFO está cheia e continua no loop até que o valor seja 0, indicando que a FIFO está vazia. Em seguida, para desabilitar a FIFO, define-se o bit 4(FEN) do LCRH como 0.
 
 ```s
@@ -194,20 +184,23 @@ A principais instruções utilizadas para o desenvolvimento do código foram:
 
 - str:  Essa instrução armazena o valor de um registrador na memória. Foi utilizada para alterar os valores dos registradores da UART, como o registrador CR, LCRH e baud rate.
 ```s 
-str r3,[r4,#2]
+@Exemplo
+str r3,[r4,#2] @ Salva o valor de r3 em r4, entretando, salva o valor com um Offset de 3
 ```
 <hr>
 
 - ldr: Essa instrução carrega um valor salvo na memória para um registrador destino. Foi usada para impressões de caracteres no terminal e verificação de valores de alguns registradores da UART.
 
 ```s
-ldr r2,[r5,#3]
+@Exemplo
+ldr r2,[r5,#3] @ Carrega o valor de r5 em r2, entretanto
 ```
 <hr>
 
 - mov: A instrução mov é usada para carregar o valor de um registrador (fonte) para outro registrador (destino), além disso, pode ser usado para carregar um valor constante para um registrador destino. <br><br>Essa instrução foi utilizada para realizar chamadas de sistema (Syscall) e para a configuração do baud rate.
 
 ```s
+@Exemplo
 mov r1,r5 @ Coloca o valor do registrador r5 em r1
 
 mov r1,#10 @ Coloca o valor 10 decimal no r1
@@ -217,7 +210,8 @@ mov r1,#10 @ Coloca o valor 10 decimal no r1
 - tst: É uma instrução condicional que testa o valor de um registrador com um operando e atualiza os sinalizadores de condição. Foi usada para identificar se a FIFO estava cheia e ler os dados da FIFO.
 
 ```s
-tst r2,#0x3E8
+@Exemplo
+tst r2,#0x3E8 @ Compara bit a bit utilizando a operação lógica AND
 ```
 
 <hr>
@@ -225,6 +219,7 @@ tst r2,#0x3E8
 - b: Essa instrução é utilizada para desvio incondicional. Foi utilizada no código para direcionar a outro procedimento.
 
 ```s
+@Exemplo
 b procedimento2
 ```
 <hr>
@@ -232,6 +227,7 @@ b procedimento2
 - bge e bne: São usadas para desvio condicional em conjunto com sinalizadores de condição. A bge desvia o fluxo quando um valor é maior ou igual ao outro e a bne quando dois valores são diferentes entre si. No sistema, foram usadas em resultados de chamadas de sistema e para analisar valores de registradores da UART.
 
 ```s
+@Exemplo
 bge nomeProcedimento
 
 bne nomeProcedimento
