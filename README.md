@@ -25,21 +25,22 @@ Inicialmente, foi necessário realizar o mapeamento da memória física da Raspb
 _start:
     ldr r0, file
     ldr r1, flag @ Leitura e Escrita do arquivo aberto / Flag O_RDWR
-    ldr r2, openMode
-    mov r7, #5 @Sycall Open
+    ldr r2, openMode @modo de abertura
+    mov r7, #5 @Sycall Open 
     svc 0
-    subs r3,r0,#0
+    subs r3,r0,#0 @verifica o valor de retorno da abertura do arquivo
     bge aberto @Se foi 0, abre
-    b mensagem_erro @se foi diferente de 0
+    b mensagem_erro @se não abriu
     
-aberto:     @ mostrar mensagem de sucesso
-    mov r4,r0 @ Movendo o file descriptor pro r4
-    mov r0,#1 @ printar mensagem no terminal
+@-----------------Função da abertura de arquivo -----------------
+aberto:
+    mov r4,r0 @ Movendo a descriçaõ do arquivo pro r4
+    mov r0,#1 @ printar mensagem de sucesso no terminal
     ldr r1,=sucesso @ a mensagem em si
     mov r2,#33 @ tamanho da mensagem
-    mov r7,#4 @ syscall pro write
+    mov r7,#4 @ syscall pra escrita
     svc 0 @ chamando a syscall
-    b mapear_gpio
+    b mapear_uart
 ```
 
 Como podemos ver na imagem do código acima, carregamos 4 parâmetros antes de chamarmos a syscall. Esses parâmetros carregam o caminho em que queremos abrir o arquivo, como queremos abrir (somente leitura, leitura e escrita ou só escrita). No ARM, o r7  é o qual colocamos o valor da nossa syscall, e chamamos utilizando o svc 0
@@ -48,21 +49,20 @@ A syscall retorna um valor >0 caso tenha conseguido abrir o arquivo e o valor -1
 
 
 ```s
-@---------------Função mapear UART-------------------------------------------------------------
+@---------------Função mapear UART------------------------------
 @ Com o arquivo dev/Mem aberto realiza o mapeamento da memoria virtual da raspberry
 
 mapear_uart:
-    @ Mapear a UART
     mov r7,#192 		@ syscall do mmap2
-    ldr r5,=baseUART0	@ Carrega no registrador r5  o enereço base da UART (definido no cabeçalho)
-    mov r0,#0 			@kernel escolhe a memoria
-    mov r1,#4096 		@ Page size
-    ldr r2,=PROT_RDWR
-    ldr r3,=MAP_SHARED
+    mov r0,#0 			@ kernel escolhe a memoria
+    mov r1,#4096 		@ Tamanho de memória que será alocado
+    ldr r2,=PROT_RDWR           @ leitura e escrita
+    ldr r3,=MAP_SHARED          @ o endereço da memória física
+    ldr r5,=baseUART0		@ Carrega no registrador r5  o enereço base da UART ( definido no cabeçalho)
     svc 0
     cmp r0,#0
-    mov r5,r0 @r5 eh o endereco da base da UART0
-    bge map_sucesso
+    mov r5,r0 @armazena o endereco base da UART0
+    bge map_sucesso @printa se mapeou
 
 @----------------------------------------------------------------------------------------------
 ```
@@ -84,26 +84,25 @@ Para realizar os passos citados acima, se tornou necessário utilizar registrado
 Para desabilitar a ``UART``, setou o bit 0 (UARTEN) do CR para 0. 
 
 ```s
-@ Desabilita a UART no registrador CR
-@ Para que as configurações possam ser feitas
-
-desabilitar_uart: @ Zera o CR
+@ Desabilita a UART no registrador CR, para que as configurações possam ser feitas
+desabilitar_uart: 
 	mov r0,#0
-	str r0,[r5,#UART_CR]
-	b limpar_fifo
+	str r0,[r5,#UART_CR] @ Zera o CR
+	str r0,[r5,#UART_DR] @ Zera o DR
+	b desabilitar_fifo @ Procedimento para desabilitar a FIFO
 ```
 Para analisar se está acontecendo uma transmissão de dados, verifica em um loop se o valor do bit 5 (TXFF) do registrador de flags (UART_FR) é igual a 1, se sim, indica que a FIFO está cheia e continua no loop até que o valor seja 0, indicando que a FIFO está vazia. Em seguida, para desabilitar a FIFO, define-se o bit 4(FEN) do LCRH como 0.
 
 ```s
-desabilitar_fifo: @ Zera o LCRH
-	
-	putlp:
-	ldr r2,[r5,#UART_FR] @ read the flag resister
-	tst r2,#UART_TXFF @Verifica se a FIFO transmiter esta cheia
-	bne putlp
-	mov r0, #UART_FEND
-	str r0, [r5,#UART_LCRH]
-	b configurar_baudrate
+@-----------------Desabilitar FIFO----------------------------------
+desabilitar_fifo: 
+	loop: 
+	ldr r2,[r5,#UART_FR] @ Ler o registrador de flags
+	tst r2,#UART_TXFF @Verifica se a FIFO de transmissão está cheia
+	bne loop @ Continua no loop enquanto estiver cheia
+	mov r0, #0
+	str r0, [r5,#UART_LCRH] @Desabilita a FIFO
+	b configurar_baudrate @Configura Baud Rate
 
 @----------------------------------------------------------------------------------------------
 ```
@@ -120,11 +119,12 @@ Outro parâmetro a ser configurado é o baud rate, o baud rate é a taxa de tran
 Usando a equação (BAUDDIV =  Freq / (BAUD_RATE*16) obtemos o valor a ser informado. Como o valor do BAUDDIV pode ser com ponto decimal, a ``UART`` disponibiliza dois registradores o IBRD (integral baud rate divisor) e o FBRD (fracitional baud rate divisor)  para representar o número, inserindo a parte inteira no IBRD e a fracional no FRBD.
 
 ```s
-configurar_baudrate: @ Escolhemos 9600 baud
+@----------------- Configurar o baudrate----------------------------
 @@ (3Mhz / (9600 * 16)) = 19,53125
-@@ 10011 no integerbaud (19)
-@@ 110101 no fractionalbaud (53)
-@@ numero seria 19,53
+@ Valor de Baud rate: 19,53
+@@ 10011 no integerBaud (19)
+@@ 110101 no fractionalBaud (53)
+configurar_baudrate:
 	mov r0, #19
 	str r0,[r5,#UART_IBRD]
 	mov r0, #53
@@ -135,13 +135,20 @@ configurar_baudrate: @ Escolhemos 9600 baud
 Após a configuração dos parâmetros de comunicação, reprograma-se o registrador de controle para habilitar a ``UART`` e a transmissão e recepção de dados. Para isso, o bit UARTEN é definido como 1 para habilitar a UART, e os bits 8(TXE) e 9(RXE) são definidos como 1 para habilitar respectivamente a transmissão e recepção de dados.
 
 ```s
-@-----------------DEFINIR LCRH-----------------------------------------------------------------
-
+@-----------------Configura os parâmetros de comunicação--------------------
+@stick parity desabilitado, tamanho de mensagem 8, FIFO ativa, 2 stop bits, paridade habilitada e ímpar
 configurar_LCRH:
-	.equ UART_CONFIG, (UART_WLEN1 | UART_WLEN0 | UART_FEN | UART_STP2 | UART_PEN ) @ stick parity desabilitado, tamanho de mensagem 8, FIFO ativa, 2 stop bits, paridade Impar, paridade ativada
+	.equ UART_CONFIG, (UART_WLEN1 | UART_WLEN0 | UART_FEN | UART_STP2 | UART_PEN ) @Define as configurações
 	mov r0,#UART_CONFIG
-	str r0,[r5,#UART_LCRH]
-	b configurar_CR
+	str r0,[r5,#UART_LCRH] @Salva as configurações no registrador LCRH
+	b configurar_CR @Configurar o registrador CR
+	
+@--------------------DEFINIR CR----------------------------------------------
+@Habilita a UART, a transmissão e recepção de dados
+configurar_CR:
+	ldr r0,=Final_Bits	@ carrega no registrador r0 a configuração em Final_bits (da mémoria)
+	str r0,[r5,#UART_CR]	@ Salva no registrador CR, as configurações
+	b escrever_dados        @Inicia a transmissão de dados
 ```
 
 Para transmitir os dados através da ``UART``, salva-se o dado que deseja enviar em um registrador e armazena no registrador DR. Ao receber os dados, o receptor também deverá ler da memória o valor do registrador DR para obter o dado. Com o registrador DR, os dados são transmitidos ou recebidos um byte de cada vez, escrever nele significa escrever na FIFO.
@@ -149,25 +156,26 @@ Para transmitir os dados através da ``UART``, salva-se o dado que deseja enviar
 ```s
 @----------------------------------------------------------------------------------------------
 @ Escreve no data register DR a palavra a ser enviada
-escrever_DR:
-	@ A fifo de transmissao esta vazia
-	ldr r0,=A
+escrever_dados:
+	ldr r0,=A @caractere a ser enviado
 	ldr r0,[r0]
-	str r0,[r5,#UART_DR] @ write the char to the FIFO @Verificar se esta sendo escrito no endereco correto
-	b ler_DR
-```
-```s
+	str r0,[r5,#UART_DR] @ Escreve o primeiro caractere na FIFO
+	ldr r8,=B @segundo caractere a ser enviado
+	ldr r8,[r8]
+	str r8,[r5,#UART_DR] @ Escreve o segundo caractere na FIFO
+	b receber_dados @Procedimento para receber os dados enviados
+	
 @---------------------------------------------------------------------
-@ Lê a menssagem em rx
-ler_DR:
-	getlp:
-	ldr r2,[r5,#UART_FR] @ read the flag resister
-	tst r2,#UART_RXFE @
-	@ Preso aqui
-	bne getlp
-	ldr r6,[r5,#UART_DR] @ read the char to the FIFo
-	b fechar_programa
 
+@ Lê a mensagem enviada, no registrador DR
+receber_dados:
+	loop_vazio:
+	ldr r2,[r5,#UART_FR] @ Ler o registrador de flags
+	tst r2,#UART_RXFE @Verifica se a FIFO de recepção está vazia
+	bne loop_vazio @Continua enquanto a fifo estiver vazia
+	ldr r6,[r5,#UART_DR] @Ler o caractere recebido
+	b printar_valor
+	b fechar_programa
 ```
 Para a realização do teste de loopback, utilizou-se um fio conector entre o pino TX e RX da UART e um osciloscópio para analisar os dados que estavam sendo enviados e recebidos. Para testar apenas a transmissão de dados, conectou-se à ponta de prova do osciloscópio no pino TX, no entanto, os dados enviados não estavam sendo exibidos no osciloscópio. Devido a esse problema, não conseguiu realizar os testes de loopback.
 
