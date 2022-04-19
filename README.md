@@ -84,7 +84,6 @@ Para realizar os passos citados acima, se tornou necessário utilizar registrado
 Para desabilitar a ``UART``, setou o bit 0 (UARTEN) do CR para 0. 
 
 ```s
-@ Desabilita a UART no registrador CR, para que as configurações possam ser feitas
 desabilitar_uart: 
 	mov r0,#0
 	str r0,[r5,#UART_CR] @ Zera o CR
@@ -105,6 +104,7 @@ Os parâmetros de comunicação solicitados para esse sistema podem ser definido
 - A paridade é definida através do bit 1(PEN) e bit 2 (EPS), o bit PEN habilita a paridade quando seu valor é 1 e desabilita quando é 0, já o bit EPS define o tipo de paridade, 0 indica paridade ímpar e 1 indica paridade par;
 - A quantidade de stop bits é configurada pelo bit 3 (STP2), no qual, definido como 0 envia um bit de parada é definido como 1 envia dois bits de parada; 
 - O tamanho da mensagem nesse sistema pode variar entre 7 ou 8 bits, e é definido nos bits 5-6 (WLEN), quando está em ``1 0`` indica que o tamanho da mensagem é de 7 bits e em ``1 1`` indica que o tamanho da mensagem é de 8 bits.
+
 Para que seja possível o envio de dados, é necessário habilitar neste momento a FIFO, configurando o bit FEN como 1. 
 ```s
 @stick parity desabilitado, tamanho de mensagem 8, FIFO ativa, 2 stop bits, paridade habilitada e ímpar
