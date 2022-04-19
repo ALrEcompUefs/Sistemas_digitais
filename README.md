@@ -156,9 +156,6 @@ escrever_DR:
 	str r0,[r5,#UART_DR] @ write the char to the FIFO @Verificar se esta sendo escrito no endereco correto
 	b ler_DR
 ```
-
-Para a realização do teste de loopback, utilizou-se um fio conector entre o pino TX e RX da UART e um osciloscópio para analisar os dados que estavam sendo enviados e recebidos. 
-
 ```s
 @---------------------------------------------------------------------
 @ Lê a menssagem em rx
@@ -170,15 +167,9 @@ ler_DR:
 	bne getlp
 	ldr r6,[r5,#UART_DR] @ read the char to the FIFo
 	b fechar_programa
-	
-@---------------------------------------------------------------------
-	
-fechar_programa: @ Fecha o programa chamando a syscall do linux
-    mov r0,#0
-    mov r7, #1
-    svc 0
+
 ```
-Para testar apenas a transmissão de dados, conectou-se à ponta de prova do osciloscópio no pino TX, no entanto, os dados enviados não estavam sendo exibidos no osciloscópio. Devido a esse problema, não conseguiu realizar os testes de loopback.
+Para a realização do teste de loopback, utilizou-se um fio conector entre o pino TX e RX da UART e um osciloscópio para analisar os dados que estavam sendo enviados e recebidos. Para testar apenas a transmissão de dados, conectou-se à ponta de prova do osciloscópio no pino TX, no entanto, os dados enviados não estavam sendo exibidos no osciloscópio. Devido a esse problema, não conseguiu realizar os testes de loopback.
 
 A principais instruções utilizadas para o desenvolvimento do código foram:
 
@@ -200,7 +191,7 @@ ldr r2,[r5,#3] @ Carrega o valor de r5 em r2, entretanto
 - mov: A instrução mov é usada para carregar o valor de um registrador (fonte) para outro registrador (destino), além disso, pode ser usado para carregar um valor constante para um registrador destino. <br><br>Essa instrução foi utilizada para realizar chamadas de sistema (Syscall) e para a configuração do baud rate.
 
 ```s
-@Exemplo
+@Exemplos
 mov r1,r5 @ Coloca o valor do registrador r5 em r1
 
 mov r1,#10 @ Coloca o valor 10 decimal no r1
@@ -227,7 +218,7 @@ b procedimento2
 - bge e bne: São usadas para desvio condicional em conjunto com sinalizadores de condição. A bge desvia o fluxo quando um valor é maior ou igual ao outro e a bne quando dois valores são diferentes entre si. No sistema, foram usadas em resultados de chamadas de sistema e para analisar valores de registradores da UART.
 
 ```s
-@Exemplo
+@Exemplos
 bge nomeProcedimento
 
 bne nomeProcedimento
