@@ -1,4 +1,3 @@
-@----------------------------------------------------------------------------------------------
 @ Define as constantes usadas, do tipo string
 	.align 2
 	.data
@@ -71,7 +70,6 @@ clkbase: .word 0
 .equ UART_RXFE, (1<<4) @ FIFO de recepção vazia
 .equ UART_BUSY, (1<<3) @ Indica que a uart está ocupada trasmitindo
 .equ UART_CTS, (1<<0) @ Limpa para enviar
-
 
 @ Bits do registrador CR
 .equ UART_RXE, (1<<9) @ Habilita recepção
