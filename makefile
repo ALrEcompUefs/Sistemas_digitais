@@ -2,7 +2,7 @@
 
 all: PBL_1
 
-uart: uart.o
+PBL_1: uart.o
 	ld -o uart uart.o
 
 uart.o: uart.s
