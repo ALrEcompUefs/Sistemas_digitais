@@ -142,10 +142,54 @@ configurar_baudrate: @ Escolhemos 9600 baud
 	b configurar_LCRH
 ```
 
-Após a configuração dos parâmetros de comunicação, reprograma-se o registrador de controle para habilitar a UART e a transmissão e recepção de dados. Para isso, o bit UARTEN é definido como 1 para habilitar a UART, e os bits 8(TXE) e 9(RXE) são definidos como 1 para habilitar respectivamente a transmissão e recepção de dados.
-Para transmitir os dados através da UART, salva-se o dado que deseja enviar em um registrador e armazena no registrador DR. Ao receber os dados, o receptor também deverá ler da memória o valor do registrador DR para obter o dado. Com o registrador DR, os dados são transmitidos ou recebidos um byte de cada vez, escrever nele significa escrever na FIFO.
+Após a configuração dos parâmetros de comunicação, reprograma-se o registrador de controle para habilitar a ``UART`` e a transmissão e recepção de dados. Para isso, o bit UARTEN é definido como 1 para habilitar a UART, e os bits 8(TXE) e 9(RXE) são definidos como 1 para habilitar respectivamente a transmissão e recepção de dados.
 
-Para a realização do teste de loopback, utilizou-se um fio conector entre o pino TX e RX da UART e um osciloscópio para analisar os dados que estavam sendo enviados e recebidos. Para testar apenas a transmissão de dados, conectou-se à ponta de prova do osciloscópio no pino TX, no entanto, os dados enviados não estavam sendo exibidos no osciloscópio. Devido a esse problema, não conseguiu realizar os testes de loopback.
+```s
+@-----------------DEFINIR LCRH-----------------------------------------------------------------
+
+configurar_LCRH:
+	.equ UART_CONFIG, (UART_WLEN1 | UART_WLEN0 | UART_FEN | UART_STP2 | UART_PEN ) @ stick parity desabilitado, tamanho de mensagem 8, FIFO ativa, 2 stop bits, paridade Impar, paridade ativada
+	mov r0,#UART_CONFIG
+	str r0,[r5,#UART_LCRH]
+	b configurar_CR
+```
+
+Para transmitir os dados através da ``UART``, salva-se o dado que deseja enviar em um registrador e armazena no registrador DR. Ao receber os dados, o receptor também deverá ler da memória o valor do registrador DR para obter o dado. Com o registrador DR, os dados são transmitidos ou recebidos um byte de cada vez, escrever nele significa escrever na FIFO.
+
+```s
+@----------------------------------------------------------------------------------------------
+@ Escreve no data register DR a palavra a ser enviada
+escrever_DR:
+	@ A fifo de transmissao esta vazia
+	ldr r0,=A
+	ldr r0,[r0]
+	str r0,[r5,#UART_DR] @ write the char to the FIFO @Verificar se esta sendo escrito no endereco correto
+	b ler_DR
+```
+
+Para a realização do teste de loopback, utilizou-se um fio conector entre o pino TX e RX da UART e um osciloscópio para analisar os dados que estavam sendo enviados e recebidos. 
+
+```s
+@---------------------------------------------------------------------
+@ Lê a menssagem em rx
+ler_DR:
+	getlp:
+	ldr r2,[r5,#UART_FR] @ read the flag resister
+	tst r2,#UART_RXFE @
+	@ Preso aqui
+	bne getlp
+	ldr r6,[r5,#UART_DR] @ read the char to the FIFo
+	b printar_valor_reg
+	b fechar_programa
+	
+@---------------------------------------------------------------------
+	
+fechar_programa: @ Fecha o programa chamando a syscall do linux
+    mov r0,#0
+    mov r7, #1
+    svc 0
+```
+Para testar apenas a transmissão de dados, conectou-se à ponta de prova do osciloscópio no pino TX, no entanto, os dados enviados não estavam sendo exibidos no osciloscópio. Devido a esse problema, não conseguiu realizar os testes de loopback.
 
 A principais instruções utilizadas para o desenvolvimento do código foram:
 
@@ -189,8 +233,8 @@ b procedimento2
 - bge e bne: São usadas para desvio condicional em conjunto com sinalizadores de condição. A bge desvia o fluxo quando um valor é maior ou igual ao outro e a bne quando dois valores são diferentes entre si. No sistema, foram usadas em resultados de chamadas de sistema e para analisar valores de registradores da UART.
 
 ```s
-*bge nomeProcedimento*
+bge nomeProcedimento
 
-*bne nomeProcedimento*
+bne nomeProcedimento
 ```
 
