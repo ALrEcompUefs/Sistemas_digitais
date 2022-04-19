@@ -77,7 +77,7 @@ Após o mapeamento da memória, iniciou-se a configuração da ``UART``. Seguind
 3. Esvaziar/desabilitar a FIFO de transmissão e recepção;
 4. Configurar os parâmetros de comunicação;
 5. Reprogramar o registrador de controle da UART;
-6. Habilitar a UART.
+6. Habilitar a ``UART``.
 
 Para realizar os passos citados acima, se tornou necessário utilizar registradores. O registrador responsável por desabilitar e habilitar a ``UART`` é o registrador de controle (CR). Já o registrador responsável por desabilitar a FIFO e configurar os parâmetros de comunicação é o registrador de controle de linha (LCRH). 
 
@@ -179,7 +179,6 @@ ler_DR:
 	@ Preso aqui
 	bne getlp
 	ldr r6,[r5,#UART_DR] @ read the char to the FIFo
-	b printar_valor_reg
 	b fechar_programa
 	
 @---------------------------------------------------------------------
